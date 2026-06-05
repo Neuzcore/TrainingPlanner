@@ -1294,6 +1294,7 @@ function saveToLocal(){
 let APP_SECRET = localStorage.getItem(APP_SECRET_KEY) || null;
 let cloudStatus = 'idle';
 let pushTimeoutId = null;
+let lastCloudError = null;
 
 function setAppSecret(secret){
   if (secret) localStorage.setItem(APP_SECRET_KEY, secret);
@@ -1343,11 +1344,16 @@ async function cloudPush(){
       },
       body: JSON.stringify({ version: 1, updated: Date.now(), events: events }),
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${res.statusText}${body ? ' — ' + body.substring(0, 120) : ''}`);
+    }
+    lastCloudError = null;
     setCloudStatus('synced');
     return true;
   } catch (e) {
     console.error('Cloud-Push fehlgeschlagen', e);
+    lastCloudError = 'Push: ' + (e.message || String(e));
     setCloudStatus('error');
     return false;
   }
@@ -1363,15 +1369,21 @@ async function cloudPull(){
     });
     if (res.status === 404){
       // Noch keine Daten im Worker — als leer behandeln
+      lastCloudError = null;
       setCloudStatus('synced');
       return { version: 1, events: [] };
     }
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status} ${res.statusText}${body ? ' — ' + body.substring(0, 120) : ''}`);
+    }
     const data = await res.json();
+    lastCloudError = null;
     setCloudStatus('synced');
     return data;
   } catch (e) {
     console.error('Cloud-Pull fehlgeschlagen', e);
+    lastCloudError = 'Pull: ' + (e.message || String(e));
     setCloudStatus('error');
     return null;
   }
@@ -2155,6 +2167,9 @@ function updateCloudInfoText(extra){
   if (!APP_SECRET){
     cloudInfoEl.textContent = 'Nicht verbunden. Trage das Worker-Secret ein.';
     cloudInfoEl.className = 'settings-status';
+  } else if (cloudStatus === 'error') {
+    cloudInfoEl.textContent = 'Letzte Operation fehlgeschlagen: ' + (lastCloudError || 'unbekannter Fehler');
+    cloudInfoEl.className = 'settings-status error';
   } else {
     cloudInfoEl.textContent = `Verbunden · Pfad ${KV_LIBRARY} · Auto-Sync nach jeder Änderung.`;
     cloudInfoEl.className = 'settings-status ok';
@@ -2178,7 +2193,7 @@ document.getElementById('cloud-connect').addEventListener('click', async () => {
   updateCloudInfoText('Lade Daten aus Cloud…');
   const data = await cloudPull();
   if (!data){
-    updateCloudInfoText('Fehler: Konnte nicht laden. Stimmt das Secret?');
+    updateCloudInfoText('Fehler beim Laden: ' + (lastCloudError || 'unbekannt'));
     return;
   }
   if (Array.isArray(data.events) && data.events.length > 0){
