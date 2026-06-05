@@ -1200,14 +1200,21 @@ const HAS_DISTANCE = new Set(['laufen','trail','wandern','rad','ergo']);
 const MONTH_NAMES_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 
+/* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
+const STORAGE_KEY = 'kadenz_v1';
+const APP_SECRET_KEY = 'kadenz_app_secret';
+const APP_VERSION = '1.1.1';
+const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
+const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
+
 /* ============= STATE ============= */
 const TODAY = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
 let viewMode = 'week';
 let currentDate = new Date(TODAY);
-let nextId = events.length ? Math.max(...events.map(e => e.id)) + 1 : 1;
 
 /* ============= EVENTS STORE ============= */
 const events = loadFromLocal();
+let nextId = events.length ? Math.max(...events.map(e => e.id)) + 1 : 1;
 const PRESET_TITLES = {
   laufen: 'Lauf', trail: 'Trailrunning', wandern: 'Wanderung',
   rad: 'Radausfahrt', ergo: 'Ergometer',
@@ -1260,11 +1267,6 @@ function eventById(id){
 
 
 /* ============= STORAGE & CLOUD ============= */
-const STORAGE_KEY = 'kadenz_v1';
-const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.1.0';
-const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
-const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
 function loadFromLocal(){
   try {
