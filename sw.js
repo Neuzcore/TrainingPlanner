@@ -3,7 +3,7 @@
  * Cloud-Worker-Requests (workers.dev) gehen immer direkt ans Netzwerk.
  */
 
-const CACHE = 'kadenz-v6';
+const CACHE = 'kadenz-v7';
 const PRECACHE = [
   './',
   './index.html',
