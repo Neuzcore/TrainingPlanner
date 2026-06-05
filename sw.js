@@ -1,9 +1,9 @@
 /* Kadenz Trainingsplaner — Service Worker
  * Strategie: Stale-while-revalidate für App-Shell + statische Assets.
- * JSONBin-Requests gehen immer direkt ans Netzwerk (kein Caching).
+ * Cloud-Worker-Requests (workers.dev) gehen immer direkt ans Netzwerk.
  */
 
-const CACHE = 'kadenz-v1';
+const CACHE = 'kadenz-v2';
 const PRECACHE = [
   './',
   './index.html',
@@ -34,8 +34,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // JSONBin immer direkt ans Netzwerk — keine Caching-Tricks für API-Daten
-  if (url.hostname.includes('jsonbin.io')) return;
+  // Cloud-Worker immer direkt ans Netzwerk — keine Caching-Tricks für API-Daten
+  if (url.hostname.includes('workers.dev')) return;
 
   // Stale-while-revalidate für alles andere
   event.respondWith(

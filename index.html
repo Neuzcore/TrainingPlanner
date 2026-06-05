@@ -1146,17 +1146,14 @@
     <div class="settings-section">
       <h4>☁ Cloud-Synchronisation</h4>
       <p class="settings-help">
-        Gib deine JSONBin-Zugangsdaten ein, um deine Trainings zwischen
-        Geräten zu synchronisieren. Die Daten werden <strong>nur auf
-        diesem Gerät</strong> gespeichert und sind nicht im App-Code sichtbar.
+        Gib das gemeinsame Worker-Secret ein, um deine Trainings zwischen
+        Geräten zu synchronisieren. Das Secret wird <strong>nur auf
+        diesem Gerät</strong> im localStorage gespeichert — nicht im App-Code,
+        da das Repo öffentlich ist.
       </p>
       <div class="field">
-        <label class="field-label" for="cloud-bin-id">Bin ID</label>
-        <input type="text" id="cloud-bin-id" placeholder="z.B. 6a087414250b1311c35c408b" autocomplete="off">
-      </div>
-      <div class="field">
-        <label class="field-label" for="cloud-master-key">Master Key</label>
-        <input type="password" id="cloud-master-key" placeholder="$2a$10$…" autocomplete="off">
+        <label class="field-label" for="worker-secret">Worker Secret</label>
+        <input type="password" id="worker-secret" placeholder="gemeinsames Secret" autocomplete="off">
       </div>
       <div class="settings-actions">
         <button class="btn btn-primary" id="cloud-connect">Verbinden & laden</button>
@@ -1264,7 +1261,10 @@ function eventById(id){
 
 /* ============= STORAGE & CLOUD ============= */
 const STORAGE_KEY = 'kadenz_v1';
-const CLOUD_CONFIG_KEY = 'kadenz_cloud_v1';
+const APP_SECRET_KEY = 'kadenz_app_secret';
+const APP_VERSION = '1.1.0';
+const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
+const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
 function loadFromLocal(){
   try {
@@ -1289,17 +1289,14 @@ function saveToLocal(){
   }
 }
 
-let cloudConfig = (() => {
-  try { return JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || 'null'); }
-  catch { return null; }
-})();
+let APP_SECRET = localStorage.getItem(APP_SECRET_KEY) || null;
 let cloudStatus = 'idle';
 let pushTimeoutId = null;
 
-function setCloudConfig(config){
-  if (config) localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(config));
-  else localStorage.removeItem(CLOUD_CONFIG_KEY);
-  cloudConfig = config;
+function setAppSecret(secret){
+  if (secret) localStorage.setItem(APP_SECRET_KEY, secret);
+  else localStorage.removeItem(APP_SECRET_KEY);
+  APP_SECRET = secret;
   updateCloudStatusBadge();
 }
 
@@ -1308,7 +1305,7 @@ function setCloudStatus(status){ cloudStatus = status; updateCloudStatusBadge();
 function updateCloudStatusBadge(){
   const el = document.getElementById('cloud-status');
   if (!el) return;
-  if (!cloudConfig){
+  if (!APP_SECRET){
     el.textContent = '☁ Nicht verbunden';
     el.dataset.status = 'unconfigured';
   } else if (cloudStatus === 'syncing'){
@@ -1327,20 +1324,20 @@ function updateCloudStatusBadge(){
 }
 
 function scheduleCloudPush(){
-  if (!cloudConfig) return;
+  if (!APP_SECRET) return;
   clearTimeout(pushTimeoutId);
   pushTimeoutId = setTimeout(cloudPush, 2500);
 }
 
 async function cloudPush(){
-  if (!cloudConfig) return false;
+  if (!APP_SECRET) return false;
   setCloudStatus('syncing');
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}`, {
+    const res = await fetch(KV_LIBRARY, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-Master-Key': cloudConfig.masterKey,
+        'Authorization': 'Bearer ' + APP_SECRET,
       },
       body: JSON.stringify({ version: 1, updated: Date.now(), events: events }),
     });
@@ -1355,16 +1352,18 @@ async function cloudPush(){
 }
 
 async function cloudPull(){
-  if (!cloudConfig) return null;
+  if (!APP_SECRET) return null;
   setCloudStatus('syncing');
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudConfig.binId}/latest`, {
+    const res = await fetch(KV_LIBRARY, {
       method: 'GET',
-      headers: {
-        'X-Master-Key': cloudConfig.masterKey,
-        'X-Bin-Meta': 'false',
-      },
+      headers: { 'Authorization': 'Bearer ' + APP_SECRET },
     });
+    if (res.status === 404){
+      // Noch keine Daten im Worker — als leer behandeln
+      setCloudStatus('synced');
+      return { version: 1, events: [] };
+    }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     setCloudStatus('synced');
@@ -2139,18 +2138,11 @@ function buildMonthChart(){
 
 /* ============= SETTINGS MODAL ============= */
 const settingsModal = document.getElementById('settings-modal');
-const cloudBinIdInput = document.getElementById('cloud-bin-id');
-const cloudMasterKeyInput = document.getElementById('cloud-master-key');
+const workerSecretInput = document.getElementById('worker-secret');
 const cloudInfoEl = document.getElementById('cloud-info');
 
 function openSettings(){
-  if (cloudConfig){
-    cloudBinIdInput.value = cloudConfig.binId || '';
-    cloudMasterKeyInput.value = cloudConfig.masterKey || '';
-  } else {
-    cloudBinIdInput.value = '';
-    cloudMasterKeyInput.value = '';
-  }
+  workerSecretInput.value = APP_SECRET || '';
   updateCloudInfoText();
   settingsModal.classList.add('active');
 }
@@ -2158,11 +2150,11 @@ function closeSettings(){ settingsModal.classList.remove('active'); }
 
 function updateCloudInfoText(extra){
   if (extra){ cloudInfoEl.textContent = extra; cloudInfoEl.className = 'settings-status ' + (extra.startsWith('Fehler') ? 'error' : 'ok'); return; }
-  if (!cloudConfig){
-    cloudInfoEl.textContent = 'Nicht verbunden. Trage Bin ID und Master Key ein.';
+  if (!APP_SECRET){
+    cloudInfoEl.textContent = 'Nicht verbunden. Trage das Worker-Secret ein.';
     cloudInfoEl.className = 'settings-status';
   } else {
-    cloudInfoEl.textContent = `Verbunden mit Bin ${cloudConfig.binId.substring(0,8)}… · Auto-Sync nach jeder Änderung.`;
+    cloudInfoEl.textContent = `Verbunden · Pfad ${KV_LIBRARY} · Auto-Sync nach jeder Änderung.`;
     cloudInfoEl.className = 'settings-status ok';
   }
 }
@@ -2175,17 +2167,16 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('cloud-connect').addEventListener('click', async () => {
-  const binId = cloudBinIdInput.value.trim();
-  const masterKey = cloudMasterKeyInput.value.trim();
-  if (!binId || !masterKey){
-    updateCloudInfoText('Fehler: Bin ID und Master Key sind erforderlich.');
+  const secret = workerSecretInput.value.trim();
+  if (!secret){
+    updateCloudInfoText('Fehler: Worker-Secret ist erforderlich.');
     return;
   }
-  setCloudConfig({ binId, masterKey });
+  setAppSecret(secret);
   updateCloudInfoText('Lade Daten aus Cloud…');
   const data = await cloudPull();
   if (!data){
-    updateCloudInfoText('Fehler: Konnte nicht laden. Stimmen die Zugangsdaten?');
+    updateCloudInfoText('Fehler: Konnte nicht laden. Stimmt das Secret?');
     return;
   }
   if (Array.isArray(data.events) && data.events.length > 0){
@@ -2195,16 +2186,18 @@ document.getElementById('cloud-connect').addEventListener('click', async () => {
       renderView();
       computeStats();
       updateCloudInfoText(`${data.events.length} Trainings aus Cloud geladen.`);
+    } else {
+      updateCloudInfoText('Verbunden (lokale Daten beibehalten).');
     }
   } else {
-    // Cloud ist leer → lokale Daten hochschieben
+    // Cloud ist leer (oder 404) → lokale Daten hochschieben
     await cloudPush();
     updateCloudInfoText('Verbunden. Lokale Daten wurden in die Cloud geladen.');
   }
 });
 
 document.getElementById('cloud-push-now').addEventListener('click', async () => {
-  if (!cloudConfig){ updateCloudInfoText('Fehler: Nicht verbunden.'); return; }
+  if (!APP_SECRET){ updateCloudInfoText('Fehler: Nicht verbunden.'); return; }
   updateCloudInfoText('Lade hoch…');
   const ok = await cloudPush();
   updateCloudInfoText(ok ? 'Erfolgreich hochgeladen.' : 'Fehler beim Hochladen.');
@@ -2212,7 +2205,7 @@ document.getElementById('cloud-push-now').addEventListener('click', async () => 
 
 document.getElementById('cloud-disconnect').addEventListener('click', () => {
   if (!confirm('Cloud-Verbindung trennen? Lokale Daten bleiben erhalten.')) return;
-  setCloudConfig(null);
+  setAppSecret(null);
   updateCloudInfoText();
 });
 
