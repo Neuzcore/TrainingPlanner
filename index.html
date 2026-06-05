@@ -407,14 +407,7 @@
   .event:active { cursor: grabbing; }
   .event.dragging { opacity: 0.4; }
 
-  .event[data-sport="laufen"]  { border-left-color: var(--sport-laufen); }
-  .event[data-sport="trail"]   { border-left-color: var(--sport-trail); }
-  .event[data-sport="wandern"] { border-left-color: var(--sport-wandern); }
-  .event[data-sport="rad"]     { border-left-color: var(--sport-rad); }
-  .event[data-sport="ergo"]    { border-left-color: var(--sport-ergo); }
-  .event[data-sport="kraft"]   { border-left-color: var(--sport-kraft); }
-  .event[data-sport="mobil"]   { border-left-color: var(--sport-mobil); }
-  .event[data-sport="yoga"]    { border-left-color: var(--sport-yoga); }
+  /* Event-Randfarben werden inline gesetzt (sportColor) */
 
   .event-top {
     display: flex; justify-content: space-between;
@@ -528,14 +521,7 @@
   }
   .month-event:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
   .month-event.dragging { opacity: 0.4; }
-  .month-event[data-sport="laufen"]  { border-left-color: var(--sport-laufen); }
-  .month-event[data-sport="trail"]   { border-left-color: var(--sport-trail); }
-  .month-event[data-sport="wandern"] { border-left-color: var(--sport-wandern); }
-  .month-event[data-sport="rad"]     { border-left-color: var(--sport-rad); }
-  .month-event[data-sport="ergo"]    { border-left-color: var(--sport-ergo); }
-  .month-event[data-sport="kraft"]   { border-left-color: var(--sport-kraft); }
-  .month-event[data-sport="mobil"]   { border-left-color: var(--sport-mobil); }
-  .month-event[data-sport="yoga"]    { border-left-color: var(--sport-yoga); }
+  /* Month-Event-Randfarben inline */
   .month-event.completed {
     background: var(--bg-subtle); color: var(--ink-mute);
     text-decoration: line-through; cursor: default;
@@ -763,6 +749,103 @@
   .settings-status.error { color: var(--accent-warm); border-color: var(--accent-warm); }
   .settings-status.ok { color: var(--accent); border-color: #c8dccf; }
 
+
+  /* ============ SPORT CONFIG (Settings) ============ */
+  .sport-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .sport-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    position: relative;
+  }
+  .sport-row-color {
+    width: 22px; height: 22px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0;
+    transition: border-color 0.15s;
+  }
+  .sport-row-color:hover { border-color: var(--ink); }
+  .sport-row-name {
+    border: 1px solid transparent;
+    background: transparent;
+    padding: 5px 8px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    border-radius: 2px;
+    transition: all 0.15s;
+    min-width: 0;
+    width: 100%;
+  }
+  .sport-row-name:hover { border-color: var(--line); }
+  .sport-row-name:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg-elev);
+  }
+  .sport-row-km {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .sport-row-km input { cursor: pointer; }
+  .sport-row-delete {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.4;
+    padding: 4px 6px;
+    border-radius: 2px;
+    transition: all 0.15s;
+    color: var(--accent-warm);
+  }
+  .sport-row-delete:hover { opacity: 1; background: rgba(194, 65, 12, 0.08); }
+  .color-palette-popup {
+    position: absolute;
+    top: 100%; left: 8px;
+    margin-top: 4px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    border-radius: 2px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(8, 22px);
+    gap: 4px;
+    z-index: 250;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .palette-color {
+    width: 22px; height: 22px;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.15s;
+  }
+  .palette-color:hover { border-color: var(--ink); }
+  .palette-color.current { border-color: var(--ink); }
+
   /* ============ MODAL ============ */
   .modal-backdrop {
     position: fixed; inset: 0;
@@ -938,7 +1021,7 @@
 <header>
   <div class="brand">
     <span class="brand-mark">Kadenz</span>
-    <span class="brand-sub">Trainingsplaner</span>
+    <span class="brand-sub">Trainingsplaner · <span id="brand-version">v—</span></span>
   </div>
   <div class="tabs">
     <button class="tab active" data-view="planner">Planer</button>
@@ -969,16 +1052,8 @@
       </div>
     </div>
 
-    <div class="palette" title="Sportart in einen Tag ziehen">
-      <span class="palette-label">Neu hinzufügen</span>
-      <div class="sport-chip" draggable="true" data-sport="laufen" data-new="1"><span class="sport-dot" style="background:var(--sport-laufen)"></span>Laufen</div>
-      <div class="sport-chip" draggable="true" data-sport="trail" data-new="1"><span class="sport-dot" style="background:var(--sport-trail)"></span>Trail</div>
-      <div class="sport-chip" draggable="true" data-sport="wandern" data-new="1"><span class="sport-dot" style="background:var(--sport-wandern)"></span>Wandern</div>
-      <div class="sport-chip" draggable="true" data-sport="rad" data-new="1"><span class="sport-dot" style="background:var(--sport-rad)"></span>Radfahren</div>
-      <div class="sport-chip" draggable="true" data-sport="ergo" data-new="1"><span class="sport-dot" style="background:var(--sport-ergo)"></span>Ergometer</div>
-      <div class="sport-chip" draggable="true" data-sport="kraft" data-new="1"><span class="sport-dot" style="background:var(--sport-kraft)"></span>Kraft</div>
-      <div class="sport-chip" draggable="true" data-sport="mobil" data-new="1"><span class="sport-dot" style="background:var(--sport-mobil)"></span>Mobilität</div>
-      <div class="sport-chip" draggable="true" data-sport="yoga" data-new="1"><span class="sport-dot" style="background:var(--sport-yoga)"></span>Yoga</div>
+    <div class="palette" id="palette" title="Sportart in einen Tag ziehen">
+      <!-- dynamisch befüllt durch renderPalette() -->
     </div>
 
     <div class="week-grid" id="week-grid"></div>
@@ -1043,13 +1118,7 @@
             <div class="chart-title">Trend über Zeit</div>
             <div class="chart-subtitle">Erledigte Stunden pro Woche · 12 W.</div>
           </div>
-          <div class="chart-legend">
-            <span class="legend-item"><span class="legend-dot" style="background:var(--sport-laufen)"></span>Lauf</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--sport-rad)"></span>Rad</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--sport-ergo)"></span>Ergo</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--sport-kraft)"></span>Kraft</span>
-            <span class="legend-item"><span class="legend-dot" style="background:var(--sport-mobil)"></span>Mob.</span>
-          </div>
+<div class="chart-legend" id="trend-chart-legend"></div>
         </div>
         <svg class="chart" viewBox="0 0 600 280" id="trend-chart"></svg>
       </div>
@@ -1071,15 +1140,7 @@
           <div class="chart-title">Monatsvolumen</div>
           <div class="chart-subtitle">Erledigte Stunden gesamt · Stack nach Sportart</div>
         </div>
-        <div class="chart-legend">
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-laufen)"></span>Lauf</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-trail)"></span>Trail</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-rad)"></span>Rad</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-ergo)"></span>Ergo</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-kraft)"></span>Kraft</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-mobil)"></span>Mob.</span>
-          <span class="legend-item"><span class="legend-dot" style="background:var(--sport-yoga)"></span>Yoga</span>
-        </div>
+<div class="chart-legend" id="month-chart-legend"></div>
       </div>
       <svg class="chart" viewBox="0 0 900 260" id="month-chart"></svg>
     </div>
@@ -1164,6 +1225,20 @@
     </div>
 
     <div class="settings-section">
+      <h4>🏃 Sportarten</h4>
+      <p class="settings-help">
+        Sportarten umbenennen, Farbe ändern, mit/ohne Distanz umschalten oder neue hinzufügen.
+        Sportarten lassen sich nur löschen, wenn keine Trainings sie nutzen.
+      </p>
+      <div class="sport-list" id="sport-list">
+        <!-- dynamisch -->
+      </div>
+      <div class="settings-actions">
+        <button class="btn" id="add-sport-btn">+ Sportart hinzufügen</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h4>💾 Backup</h4>
       <p class="settings-help">
         Lokale Daten als JSON-Datei sichern oder ein vorhandenes Backup einspielen.
@@ -1191,19 +1266,53 @@
 
 <script>
 /* ============= CONSTANTS & CONFIG ============= */
-const SPORTS = {
-  laufen:{label:'Laufen'}, trail:{label:'Trail'}, wandern:{label:'Wandern'},
-  rad:{label:'Radfahren'}, ergo:{label:'Ergometer'}, kraft:{label:'Kraft'},
-  mobil:{label:'Mobilität'}, yoga:{label:'Yoga'},
-};
-const HAS_DISTANCE = new Set(['laufen','trail','wandern','rad','ergo']);
+const DEFAULT_SPORTS = [
+  { id: 'laufen',  label: 'Laufen',    color: '#e85d20', hasDistance: true  },
+  { id: 'trail',   label: 'Trail',     color: '#8b3a0e', hasDistance: true  },
+  { id: 'wandern', label: 'Wandern',   color: '#4d7c2a', hasDistance: true  },
+  { id: 'rad',     label: 'Radfahren', color: '#0e7490', hasDistance: true  },
+  { id: 'ergo',    label: 'Ergometer', color: '#1e40af', hasDistance: true  },
+  { id: 'kraft',   label: 'Kraft',     color: '#a16207', hasDistance: false },
+  { id: 'mobil',   label: 'Mobilität', color: '#6d28d9', hasDistance: false },
+  { id: 'yoga',    label: 'Yoga',      color: '#be185d', hasDistance: false },
+];
+
+const COLOR_PALETTE = [
+  '#e85d20', '#c2410c', '#8b3a0e', '#a16207',
+  '#65a30d', '#4d7c2a', '#0f766e', '#0e7490',
+  '#1e40af', '#3b82f6', '#6d28d9', '#a855f7',
+  '#be185d', '#dc2626', '#78716c', '#374151',
+];
+
+/* SPORTS ist eine veränderliche Liste — wird aus loadFromLocal/Cloud befüllt */
+let SPORTS = [];
+
+function sportById(id){
+  return SPORTS.find(s => s.id === id) || { id, label: '?', color: '#888', hasDistance: false };
+}
+function sportLabel(id){ return sportById(id).label; }
+function sportColor(id){ return sportById(id).color; }
+function sportHasDistance(id){ return sportById(id).hasDistance; }
+function sportIds(){ return SPORTS.map(s => s.id); }
+
+function generateSportId(label, existingIds){
+  let base = String(label || '').toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '')
+    .replace(/^[0-9]+/, '');
+  if (!base) base = 'sport';
+  let id = base;
+  let n = 2;
+  while (existingIds.includes(id)){ id = base + n; n++; }
+  return id;
+}
 const MONTH_NAMES_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 
 /* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
 const STORAGE_KEY = 'kadenz_v1';
 const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.3.0';
 const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
 const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
@@ -1271,11 +1380,18 @@ function eventById(id){
 function loadFromLocal(){
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw){
+      SPORTS = JSON.parse(JSON.stringify(DEFAULT_SPORTS));
+      return [];
+    }
     const parsed = JSON.parse(raw);
+    SPORTS = Array.isArray(parsed.sports) && parsed.sports.length > 0
+      ? parsed.sports
+      : JSON.parse(JSON.stringify(DEFAULT_SPORTS));
     return Array.isArray(parsed.events) ? parsed.events : [];
   } catch (e) {
     console.warn('Konnte lokale Daten nicht laden', e);
+    SPORTS = JSON.parse(JSON.stringify(DEFAULT_SPORTS));
     return [];
   }
 }
@@ -1283,7 +1399,7 @@ function loadFromLocal(){
 function saveToLocal(){
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      version: 1, updated: Date.now(), events: events
+      version: 2, updated: Date.now(), events: events, sports: SPORTS
     }));
     scheduleCloudPush();
   } catch (e) {
@@ -1342,7 +1458,7 @@ async function cloudPush(){
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + APP_SECRET,
       },
-      body: JSON.stringify({ version: 1, updated: Date.now(), events: events }),
+      body: JSON.stringify({ version: 2, updated: Date.now(), events: events, sports: SPORTS }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -1371,7 +1487,7 @@ async function cloudPull(){
       // Noch keine Daten im Worker — als leer behandeln
       lastCloudError = null;
       setCloudStatus('synced');
-      return { version: 1, events: [] };
+      return { version: 2, events: [], sports: JSON.parse(JSON.stringify(DEFAULT_SPORTS)) };
     }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -1389,19 +1505,23 @@ async function cloudPull(){
   }
 }
 
-function replaceEvents(newEvents){
+function replaceEvents(newEvents, newSports){
   events.length = 0;
   events.push(...newEvents);
   nextId = events.length ? Math.max(...events.map(e => e.id)) + 1 : 1;
+  if (Array.isArray(newSports) && newSports.length > 0){
+    SPORTS = newSports;
+  }
 }
 
 /* ============= EXPORT / IMPORT ============= */
 function exportBackup(){
   const data = {
-    version: 1,
+    version: 2,
     app: 'Kadenz',
     exported: new Date().toISOString(),
     events: events,
+    sports: SPORTS,
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -1420,7 +1540,8 @@ function importBackup(file){
       const data = JSON.parse(e.target.result);
       if (!Array.isArray(data.events)) throw new Error('Ungültiges Format');
       if (!confirm(`${data.events.length} Trainings importieren? Lokale Daten werden überschrieben.`)) return;
-      replaceEvents(data.events);
+      replaceEvents(data.events, data.sports);
+      renderPalette();
       saveToLocal();
       renderView();
       computeStats();
@@ -1495,10 +1616,11 @@ function renderEvent(ev){
   node.dataset.duration = ev.duration;
   node.dataset.distance = ev.distance != null ? ev.distance : '';
   node.draggable = !ev.done;
+  node.style.borderLeftColor = sportColor(ev.sport);
 
   const metaParts = [`<span>${formatDuration(ev.duration)}</span>`];
   if (ev.distance != null) metaParts.push(`<span>${ev.distance} km</span>`);
-  metaParts.push(`<span>${SPORTS[ev.sport].label}</span>`);
+  metaParts.push(`<span>${sportLabel(ev.sport)}</span>`);
 
   node.innerHTML = `
     <div class="event-top">
@@ -1692,7 +1814,7 @@ function renderPlanChart(){
   // X-Achse
   g += `<line class="axis-line" x1="${padL}" x2="${W-padR}" y1="${H-padB}" y2="${H-padB}"/>`;
 
-  const sportOrder = ['laufen','trail','wandern','rad','ergo','kraft','mobil','yoga'];
+  const sportOrder = sportIds();
   const sportsInPeriod = new Set();
 
   buckets.forEach((bucket, idx) => {
@@ -1713,7 +1835,7 @@ function renderPlanChart(){
       if (v === 0) return;
       const segH = (v / maxY) * (H - padT - padB);
       const segY = cursor - segH;
-      g += `<rect x="${cx - barW/2}" y="${segY}" width="${barW}" height="${segH}" fill="var(--sport-${s})" opacity="0.92"/>`;
+      g += `<rect x="${cx - barW/2}" y="${segY}" width="${barW}" height="${segH}" fill="${sportColor(s)}" opacity="0.92"/>`;
       cursor = segY;
     });
 
@@ -1739,7 +1861,7 @@ function renderPlanChart(){
   const presentSports = sportOrder.filter(s => sportsInPeriod.has(s));
   legendEl.innerHTML = presentSports.map(s => `
     <span class="legend-item">
-      <span class="legend-dot" style="background:var(--sport-${s})"></span>${SPORTS[s].label}
+      <span class="legend-dot" style="background:${sportColor(s)}"></span>${sportLabel(s)}
     </span>
   `).join('');
 }
@@ -1811,7 +1933,7 @@ function attachWeekDnD(){
       } else if (payload.startsWith('new:')){
         const sport = payload.slice(4);
         let dist = null;
-        if (HAS_DISTANCE.has(sport)){
+        if (sportHasDistance(sport)){
           dist = sport==='wandern'?12 : sport==='rad'?25 : sport==='ergo'?15 : 8;
         }
         events.push({
@@ -1882,6 +2004,135 @@ function attachMonthDnD(){
   });
 }
 
+
+/* ============= PALETTE (dynamisch) ============= */
+function renderPalette(){
+  const el = document.getElementById('palette');
+  if (!el) return;
+  if (SPORTS.length === 0){
+    el.innerHTML = '<span class="palette-label">Keine Sportarten — leg in den Einstellungen welche an.</span>';
+    return;
+  }
+  el.innerHTML = '<span class="palette-label">Neu hinzufügen</span>' +
+    SPORTS.map(s => `
+      <div class="sport-chip" draggable="true" data-sport="${s.id}" data-new="1">
+        <span class="sport-dot" style="background:${s.color}"></span>${escapeHtml(s.label)}
+      </div>
+    `).join('');
+}
+
+/* ============= SPORT CONFIG (Settings) ============= */
+function renderSportConfig(){
+  const list = document.getElementById('sport-list');
+  if (!list) return;
+  list.innerHTML = SPORTS.map(s => `
+    <div class="sport-row" data-sport-id="${s.id}">
+      <button class="sport-row-color" style="background:${s.color}" data-action="color" title="Farbe ändern">●</button>
+      <input type="text" class="sport-row-name" value="${escapeHtml(s.label)}" data-action="name" maxlength="40">
+      <label class="sport-row-km" title="Mit Distanz (km)">
+        <input type="checkbox" data-action="km" ${s.hasDistance ? 'checked' : ''}>
+        <span>km</span>
+      </label>
+      <button class="sport-row-delete" data-action="delete" title="Löschen">🗑</button>
+    </div>
+  `).join('');
+
+  // Wiring
+  list.querySelectorAll('.sport-row').forEach(row => {
+    const id = row.dataset.sportId;
+    row.querySelector('[data-action="name"]').addEventListener('change', (e) => updateSportField(id, 'label', e.target.value.trim()));
+    row.querySelector('[data-action="name"]').addEventListener('blur', (e) => {
+      const v = e.target.value.trim();
+      if (!v){ e.target.value = sportLabel(id); }
+    });
+    row.querySelector('[data-action="km"]').addEventListener('change', (e) => updateSportField(id, 'hasDistance', e.target.checked));
+    row.querySelector('[data-action="color"]').addEventListener('click', (e) => openColorPicker(id, e.target));
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteSport(id));
+  });
+}
+
+function updateSportField(id, field, value){
+  const sport = SPORTS.find(s => s.id === id);
+  if (!sport) return;
+  if (field === 'label' && !value) return;
+  sport[field] = value;
+  saveToLocal();
+  renderPalette();
+  renderView();
+  computeStats();
+}
+
+function openColorPicker(sportId, anchorEl){
+  // Vorhandenes Popup entfernen
+  document.querySelectorAll('.color-palette-popup').forEach(p => p.remove());
+  const currentColor = sportColor(sportId);
+  const popup = document.createElement('div');
+  popup.className = 'color-palette-popup';
+  popup.innerHTML = COLOR_PALETTE.map(c => `
+    <button class="palette-color ${c === currentColor ? 'current' : ''}" style="background:${c}" data-color="${c}"></button>
+  `).join('');
+  anchorEl.parentElement.appendChild(popup);
+
+  popup.querySelectorAll('.palette-color').forEach(btn => {
+    btn.addEventListener('click', () => {
+      updateSportField(sportId, 'color', btn.dataset.color);
+      popup.remove();
+      renderSportConfig();
+    });
+  });
+
+  // Close on outside click
+  setTimeout(() => {
+    function onDocClick(e){
+      if (!popup.contains(e.target)){
+        popup.remove();
+        document.removeEventListener('click', onDocClick);
+      }
+    }
+    document.addEventListener('click', onDocClick);
+  }, 0);
+}
+
+function addSport(){
+  const existingIds = SPORTS.map(s => s.id);
+  const usedColors = new Set(SPORTS.map(s => s.color));
+  const nextColor = COLOR_PALETTE.find(c => !usedColors.has(c)) || COLOR_PALETTE[0];
+  const newId = generateSportId('sport', existingIds);
+  SPORTS.push({
+    id: newId,
+    label: 'Neue Sportart',
+    color: nextColor,
+    hasDistance: false,
+  });
+  saveToLocal();
+  renderPalette();
+  renderSportConfig();
+  renderView();
+  computeStats();
+  // Fokus aufs Namensfeld der neuen Zeile
+  setTimeout(() => {
+    const newRow = document.querySelector(`.sport-row[data-sport-id="${newId}"] [data-action="name"]`);
+    if (newRow){ newRow.focus(); newRow.select(); }
+  }, 50);
+}
+
+function deleteSport(id){
+  const usedBy = events.filter(e => e.sport === id).length;
+  if (usedBy > 0){
+    alert(`Kann „${sportLabel(id)}" nicht löschen — ${usedBy} Training${usedBy === 1 ? '' : 's'} nutz${usedBy === 1 ? 't' : 'en'} diese Sportart. Erst diese ändern oder löschen.`);
+    return;
+  }
+  if (!confirm(`„${sportLabel(id)}" löschen?`)) return;
+  const idx = SPORTS.findIndex(s => s.id === id);
+  if (idx === -1) return;
+  SPORTS.splice(idx, 1);
+  saveToLocal();
+  renderPalette();
+  renderSportConfig();
+  renderView();
+  computeStats();
+}
+
 /* ============= MODAL ============= */
 const editModal = document.getElementById('edit-modal');
 let currentEditEventId = null;
@@ -1895,12 +2146,12 @@ function openEditModal(id){
   document.getElementById('edit-duration').value = ev.duration;
   document.getElementById('edit-distance').value = ev.distance != null ? ev.distance : '';
   document.getElementById('edit-distance-field').style.display =
-    HAS_DISTANCE.has(ev.sport) ? '' : 'none';
+    sportHasDistance(ev.sport) ? '' : 'none';
 
   const picker = document.getElementById('edit-sport-picker');
-  picker.innerHTML = Object.entries(SPORTS).map(([key, s]) => `
-    <div class="sport-picker-chip ${key === ev.sport ? 'selected' : ''}" data-sport="${key}">
-      <span class="sport-dot" style="background:var(--sport-${key})"></span>${s.label}
+  picker.innerHTML = SPORTS.map(s => `
+    <div class="sport-picker-chip ${s.id === ev.sport ? 'selected' : ''}" data-sport="${s.id}">
+      <span class="sport-dot" style="background:${s.color}"></span>${s.label}
     </div>
   `).join('');
   picker.querySelectorAll('.sport-picker-chip').forEach(c => {
@@ -1909,7 +2160,7 @@ function openEditModal(id){
       c.classList.add('selected');
       const newSport = c.dataset.sport;
       document.getElementById('edit-distance-field').style.display =
-        HAS_DISTANCE.has(newSport) ? '' : 'none';
+        sportHasDistance(newSport) ? '' : 'none';
     });
   });
 
@@ -1934,7 +2185,7 @@ function saveEdit(){
   const duration = Math.max(0, Number(document.getElementById('edit-duration').value) || 0);
   const sport = document.querySelector('#edit-sport-picker .sport-picker-chip.selected')?.dataset.sport || ev.sport;
   const distInput = document.getElementById('edit-distance').value;
-  const distance = HAS_DISTANCE.has(sport) && distInput !== '' ? Number(distInput) : null;
+  const distance = sportHasDistance(sport) && distInput !== '' ? Number(distInput) : null;
   const isDone = document.getElementById('edit-done-check').classList.contains('done');
 
   ev.title = title;
@@ -2019,7 +2270,7 @@ function computeStats(){
   const activeSports = new Set(completed.map(e => e.sport));
 
   const perSport = {};
-  Object.keys(SPORTS).forEach(s => perSport[s] = 0);
+  sportIds().forEach(s => perSport[s] = 0);
   completed.forEach(e => { perSport[e.sport] += e.duration; });
 
   const hours = totalMin / 60;
@@ -2038,115 +2289,197 @@ function computeStats(){
   document.getElementById('stat-days-sub').textContent = 'mit Training diese Woche';
 
   document.getElementById('stat-sports').innerHTML =
-    `${activeSports.size}<span class="unit">/8</span>`;
+    `${activeSports.size}<span class="unit">/${SPORTS.length}</span>`;
   document.getElementById('stat-sports-sub').textContent =
     activeSports.size === 0 ? 'noch keine' : 'diese Woche aktiv';
 
-  const sportOrder = ['laufen','trail','wandern','rad','ergo','kraft','mobil','yoga'];
+  const sportOrder = sportIds();
   const maxMin = Math.max(60, ...Object.values(perSport));
   const container = document.getElementById('sport-bars');
   container.innerHTML = sportOrder.map(s => {
     const min = perSport[s];
     const pct = (min / maxMin) * 100;
     const label = min === 0 ? '—' : formatDuration(min);
+    const color = sportColor(s);
     return `
       <div class="sport-bar">
         <div class="sport-bar-label">
-          <span class="sport-dot" style="background:var(--sport-${s})"></span>${SPORTS[s].label}
+          <span class="sport-dot" style="background:${color}"></span>${sportLabel(s)}
         </div>
         <div class="sport-bar-track">
-          <div class="sport-bar-fill" style="width:${pct}%; background:var(--sport-${s})"></div>
+          <div class="sport-bar-fill" style="width:${pct}%; background:${color}"></div>
         </div>
         <div class="sport-bar-value">${label}</div>
       </div>
     `;
   }).join('');
+
+  // Auswertungs-Charts mit aktuellen Daten neu rendern
+  buildTrendChart();
+  buildMonthChart();
 }
 
 /* ============= CHARTS (synthetische Historie) ============= */
 function buildTrendChart(){
   const svg = document.getElementById('trend-chart');
-  const W = 600, H = 280, padL = 40, padR = 16, padT = 16, padB = 30;
+  const legendEl = document.getElementById('trend-chart-legend');
+  if (!svg) return;
+
   const weeks = 12;
-  const data = {
-    laufen: [2.1, 2.5, 3.0, 2.8, 3.4, 3.2, 3.5, 3.8, 3.2, 3.6, 3.9, 4.2],
-    rad:    [1.0, 1.5, 1.2, 1.8, 2.0, 1.8, 2.2, 2.5, 2.0, 2.3, 2.0, 2.4],
-    ergo:   [0.5, 0.8, 1.0, 0.7, 1.2, 1.5, 1.3, 1.8, 1.4, 1.6, 1.7, 1.9],
-    kraft:  [0.8, 1.0, 1.0, 1.2, 1.2, 1.0, 1.3, 1.4, 1.2, 1.3, 1.4, 1.3],
-    mobil:  [0.3, 0.4, 0.5, 0.4, 0.5, 0.6, 0.5, 0.7, 0.6, 0.8, 0.7, 0.8],
-  };
-  const colors = {
-    laufen:'var(--sport-laufen)', rad:'var(--sport-rad)',
-    ergo:'var(--sport-ergo)', kraft:'var(--sport-kraft)', mobil:'var(--sport-mobil)',
-  };
-  const maxY = 5;
+  const currentWeekStart = startOfWeek(TODAY);
+
+  // Buckets: 12 Wochen, endend mit aktueller Woche
+  const buckets = [];
+  for (let i = weeks - 1; i >= 0; i--){
+    const weekStart = addDays(currentWeekStart, -7 * i);
+    const weekEnd = addDays(weekStart, 6);
+    const fromISO = toISO(weekStart);
+    const toISOEnd = toISO(weekEnd);
+    const wEvents = events.filter(e =>
+      e.done && e.date >= fromISO && e.date <= toISOEnd
+    );
+    const perSport = {};
+    sportIds().forEach(s => perSport[s] = 0);
+    wEvents.forEach(e => { perSport[e.sport] += e.duration / 60; });
+    buckets.push({ weekStart, kw: getISOWeek(weekStart), perSport });
+  }
+
+  // Sportarten mit überhaupt Daten
+  const sportTotals = {};
+  sportIds().forEach(s => sportTotals[s] = 0);
+  buckets.forEach(b => {
+    Object.entries(b.perSport).forEach(([s, h]) => sportTotals[s] += h);
+  });
+  const activeSports = sportIds().filter(s => sportTotals[s] > 0);
+
+  if (activeSports.length === 0){
+    svg.innerHTML = '<text x="300" y="140" text-anchor="middle" style="fill:var(--ink-mute); font-family:\'JetBrains Mono\',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase">Noch keine erledigten Trainings in den letzten 12 Wochen</text>';
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+
+  const W = 600, H = 280, padL = 40, padR = 16, padT = 16, padB = 30;
+  const allValues = buckets.flatMap(b => Object.values(b.perSport));
+  const rawMax = Math.max(...allValues, 1);
+  const maxY = rawMax <= 2 ? Math.ceil(rawMax * 2) / 2
+             : rawMax <= 10 ? Math.ceil(rawMax)
+             : Math.ceil(rawMax / 2) * 2;
   const x = i => padL + i * ((W - padL - padR) / (weeks - 1));
   const y = v => H - padB - (v / maxY) * (H - padT - padB);
+
   let g = '';
-  for (let v = 1; v <= maxY; v++){
+  const yStep = maxY <= 2 ? 0.5 : maxY <= 5 ? 1 : maxY <= 10 ? 2 : Math.ceil(maxY / 5);
+  for (let v = yStep; v <= maxY + 0.001; v += yStep){
     g += `<line class="grid-line" x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}"/>`;
     g += `<text class="axis-label" x="${padL - 8}" y="${y(v) + 3}" text-anchor="end">${v}h</text>`;
   }
-  for (let i = 0; i < weeks; i++){
-    if (i % 2 === 0){
-      g += `<text class="axis-label" x="${x(i)}" y="${H - 10}" text-anchor="middle">W${i+1}</text>`;
+  buckets.forEach((b, i) => {
+    if (i % 2 === 0 || i === buckets.length - 1){
+      g += `<text class="axis-label" x="${x(i)}" y="${H - 10}" text-anchor="middle">KW${b.kw}</text>`;
     }
-  }
+  });
   g += `<line class="axis-line" x1="${padL}" x2="${W-padR}" y1="${H-padB}" y2="${H-padB}"/>`;
-  Object.entries(data).forEach(([sport, vals]) => {
-    const pts = vals.map((v,i) => `${x(i)},${y(v)}`).join(' ');
-    g += `<polyline points="${pts}" fill="none" stroke="${colors[sport]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    vals.forEach((v,i) => {
-      g += `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${colors[sport]}"/>`;
+
+  activeSports.forEach(sport => {
+    const c = sportColor(sport);
+    const pts = buckets.map((b, i) => `${x(i)},${y(b.perSport[sport])}`).join(' ');
+    g += `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    buckets.forEach((b, i) => {
+      if (b.perSport[sport] > 0){
+        g += `<circle cx="${x(i)}" cy="${y(b.perSport[sport])}" r="2.5" fill="${c}"/>`;
+      }
     });
   });
   svg.innerHTML = g;
+
+  // Legende dynamisch
+  if (legendEl){
+    legendEl.innerHTML = activeSports.map(s => `
+      <span class="legend-item"><span class="legend-dot" style="background:${sportColor(s)}"></span>${sportLabel(s)}</span>
+    `).join('');
+  }
 }
 
 function buildMonthChart(){
   const svg = document.getElementById('month-chart');
+  const legendEl = document.getElementById('month-chart-legend');
+  if (!svg) return;
+
+  const monthsCount = 6;
+
+  // Buckets: 6 Monate, endend mit aktuellem
+  const buckets = [];
+  for (let i = monthsCount - 1; i >= 0; i--){
+    const monthDate = new Date(TODAY.getFullYear(), TODAY.getMonth() - i, 1);
+    const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+    const fromISO = toISO(monthStart);
+    const toISOEnd = toISO(monthEnd);
+    const mEvents = events.filter(e =>
+      e.done && e.date >= fromISO && e.date <= toISOEnd
+    );
+    const perSport = {};
+    sportIds().forEach(s => perSport[s] = 0);
+    mEvents.forEach(e => { perSport[e.sport] += e.duration / 60; });
+    const total = Object.values(perSport).reduce((s, v) => s + v, 0);
+    buckets.push({ monthDate, label: MONTH_NAMES_SHORT[monthDate.getMonth()], perSport, total });
+  }
+
+  // Sportarten mit Daten
+  const sportTotals = {};
+  sportIds().forEach(s => sportTotals[s] = 0);
+  buckets.forEach(b => {
+    Object.entries(b.perSport).forEach(([s, h]) => sportTotals[s] += h);
+  });
+  const activeSports = sportIds().filter(s => sportTotals[s] > 0);
+
+  if (activeSports.length === 0){
+    svg.innerHTML = '<text x="450" y="130" text-anchor="middle" style="fill:var(--ink-mute); font-family:\'JetBrains Mono\',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase">Noch keine erledigten Trainings in den letzten 6 Monaten</text>';
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+
   const W = 900, H = 260, padL = 40, padR = 16, padT = 20, padB = 36;
-  const months = ['Dez','Jan','Feb','Mär','Apr','Mai'];
-  const data = [
-    {laufen:8,  trail:3, rad:5,  ergo:2, kraft:4, mobil:2, yoga:2},
-    {laufen:10, trail:4, rad:6,  ergo:3, kraft:5, mobil:3, yoga:2},
-    {laufen:12, trail:5, rad:7,  ergo:4, kraft:5, mobil:3, yoga:3},
-    {laufen:14, trail:6, rad:9,  ergo:5, kraft:6, mobil:3, yoga:2},
-    {laufen:15, trail:8, rad:11, ergo:6, kraft:6, mobil:4, yoga:3},
-    {laufen:16, trail:9, rad:10, ergo:7, kraft:6, mobil:4, yoga:2},
-  ];
-  const sportOrder = ['laufen','trail','rad','ergo','kraft','mobil','yoga'];
-  const colors = {
-    laufen:'var(--sport-laufen)', trail:'var(--sport-trail)',
-    rad:'var(--sport-rad)', ergo:'var(--sport-ergo)',
-    kraft:'var(--sport-kraft)', mobil:'var(--sport-mobil)', yoga:'var(--sport-yoga)',
-  };
-  const maxY = 65;
-  const slot = (W - padL - padR) / months.length;
+  const rawMax = Math.max(...buckets.map(b => b.total), 1);
+  const maxY = rawMax <= 10 ? Math.ceil(rawMax)
+             : rawMax <= 30 ? Math.ceil(rawMax / 5) * 5
+             : Math.ceil(rawMax / 10) * 10;
+  const slot = (W - padL - padR) / buckets.length;
   const barW = slot * 0.55;
   const y = v => H - padB - (v / maxY) * (H - padT - padB);
+  const sportOrder = sportIds();
+
   let g = '';
-  for (let v = 10; v <= maxY; v += 10){
+  const yStep = maxY <= 10 ? 2 : maxY <= 30 ? 5 : 10;
+  for (let v = yStep; v <= maxY; v += yStep){
     g += `<line class="grid-line" x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}"/>`;
     g += `<text class="axis-label" x="${padL - 8}" y="${y(v) + 3}" text-anchor="end">${v}h</text>`;
   }
   g += `<line class="axis-line" x1="${padL}" x2="${W-padR}" y1="${H-padB}" y2="${H-padB}"/>`;
-  data.forEach((m, idx) => {
+
+  buckets.forEach((b, idx) => {
     const cx = padL + idx * slot + slot/2;
     let cursor = H - padB;
-    let total = 0;
     sportOrder.forEach(s => {
-      const v = m[s];
-      total += v;
+      const v = b.perSport[s];
+      if (v <= 0) return;
       const segH = (v / maxY) * (H - padT - padB);
       const segY = cursor - segH;
-      g += `<rect x="${cx - barW/2}" y="${segY}" width="${barW}" height="${segH}" fill="${colors[s]}" opacity="0.92"/>`;
+      g += `<rect x="${cx - barW/2}" y="${segY}" width="${barW}" height="${segH}" fill="${sportColor(s)}" opacity="0.92"/>`;
       cursor = segY;
     });
-    g += `<text class="axis-label" x="${cx}" y="${H - 14}" text-anchor="middle">${months[idx]}</text>`;
-    g += `<text class="axis-label" x="${cx}" y="${cursor - 8}" text-anchor="middle" style="fill:var(--ink); font-weight:700">${total}h</text>`;
+    g += `<text class="axis-label" x="${cx}" y="${H - 14}" text-anchor="middle">${b.label}</text>`;
+    if (b.total > 0){
+      g += `<text class="axis-label" x="${cx}" y="${cursor - 8}" text-anchor="middle" style="fill:var(--ink); font-weight:700">${b.total.toFixed(b.total < 10 ? 1 : 0).replace('.', ',')}h</text>`;
+    }
   });
   svg.innerHTML = g;
+
+  if (legendEl){
+    legendEl.innerHTML = activeSports.map(s => `
+      <span class="legend-item"><span class="legend-dot" style="background:${sportColor(s)}"></span>${sportLabel(s)}</span>
+    `).join('');
+  }
 }
 
 
@@ -2158,6 +2491,7 @@ const cloudInfoEl = document.getElementById('cloud-info');
 function openSettings(){
   workerSecretInput.value = APP_SECRET || '';
   updateCloudInfoText();
+  renderSportConfig();
   settingsModal.classList.add('active');
 }
 function closeSettings(){ settingsModal.classList.remove('active'); }
@@ -2198,8 +2532,9 @@ document.getElementById('cloud-connect').addEventListener('click', async () => {
   }
   if (Array.isArray(data.events) && data.events.length > 0){
     if (events.length === 0 || confirm(`Cloud enthält ${data.events.length} Trainings. Lokale Daten ersetzen?`)){
-      replaceEvents(data.events);
+      replaceEvents(data.events, data.sports);
       saveToLocal();
+      renderPalette();
       renderView();
       computeStats();
       updateCloudInfoText(`${data.events.length} Trainings aus Cloud geladen.`);
@@ -2232,6 +2567,7 @@ document.getElementById('import-file').addEventListener('change', (e) => {
   e.target.value = '';
 });
 document.getElementById('reset-btn').addEventListener('click', resetAllData);
+document.getElementById('add-sport-btn').addEventListener('click', addSport);
 
 /* ============= SERVICE WORKER ============= */
 if ('serviceWorker' in navigator){
@@ -2246,6 +2582,8 @@ if ('serviceWorker' in navigator){
 updateCloudStatusBadge();
 
 /* ============= INIT ============= */
+document.getElementById('brand-version').textContent = 'v' + APP_VERSION;
+renderPalette();
 renderView();
 computeStats();
 buildTrendChart();
