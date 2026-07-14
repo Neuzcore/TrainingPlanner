@@ -1008,7 +1008,8 @@
     margin-bottom: 6px; display: block;
   }
   .field input[type="text"],
-  .field input[type="number"] {
+  .field input[type="number"],
+  .field input[type="date"] {
     width: 100%;
     padding: 10px 12px;
     background: var(--bg-card);
@@ -1133,7 +1134,7 @@
     display: flex; flex-wrap: wrap; gap: 6px;
     margin-bottom: 8px;
   }
-  .dur-chip {
+  .dur-chip, .repeat-chip {
     padding: 8px 12px;
     border: 1px solid var(--line-strong);
     background: var(--bg-card);
@@ -1143,9 +1144,15 @@
     cursor: pointer; color: var(--ink);
     transition: all 0.15s;
   }
-  .dur-chip:hover { border-color: var(--ink-dim); }
-  .dur-chip.selected {
+  .dur-chip:hover, .repeat-chip:hover { border-color: var(--ink-dim); }
+  .dur-chip.selected, .repeat-chip.selected {
     background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .repeat-opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .copyweek-info {
+    font-size: 13px; color: var(--ink-dim);
+    line-height: 1.5; margin: 4px 0 2px;
+    min-height: 20px;
   }
 
   /* "+"-Knopf im Tag-Kopf */
@@ -1196,8 +1203,8 @@
     .day-add { width: 30px; height: 30px; font-size: 19px; }
 
     /* Quick-Add + Edit als Bottom-Sheet */
-    #quickadd-modal, #edit-modal { align-items: flex-end; padding: 0; }
-    #quickadd-modal .modal, #edit-modal .modal {
+    #quickadd-modal, #edit-modal, #copyweek-modal { align-items: flex-end; padding: 0; }
+    #quickadd-modal .modal, #edit-modal .modal, #copyweek-modal .modal {
       max-width: 100%;
       border-radius: 14px 14px 0 0;
       max-height: 90vh;
@@ -1250,6 +1257,7 @@
       <div class="palette" id="palette" title="Sportart in einen Tag ziehen">
         <!-- dynamisch befüllt durch renderPalette() -->
       </div>
+      <button class="palette-manage-btn" id="copy-week-btn" title="Diese Woche in folgende Wochen kopieren">⧉ Woche kopieren</button>
       <button class="palette-manage-btn" id="manage-sports-btn" title="Sportarten anpassen, umbenennen oder neue hinzufügen">⚙ Sportarten</button>
     </div>
 
@@ -1346,7 +1354,39 @@
   
 </main>
 
+<!-- ========== WOCHE-KOPIEREN MODAL ========== -->
+<div class="modal-backdrop" id="copyweek-modal">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">Woche kopieren</h3>
+        <div class="quickadd-date" id="copyweek-source">—</div>
+      </div>
+      <button class="modal-close" id="copyweek-close" aria-label="Schließen">✕</button>
+    </div>
+
+    <div class="field">
+      <label class="field-label">In die nächsten Wochen</label>
+      <div class="repeat-opts" id="copyweek-count">
+        <button type="button" class="repeat-chip" data-n="1">1</button>
+        <button type="button" class="repeat-chip selected" data-n="2">2</button>
+        <button type="button" class="repeat-chip" data-n="3">3</button>
+        <button type="button" class="repeat-chip" data-n="4">4</button>
+        <button type="button" class="repeat-chip" data-n="8">8</button>
+      </div>
+    </div>
+
+    <div class="copyweek-info" id="copyweek-info"></div>
+
+    <div class="modal-actions qa-actions">
+      <button class="btn" id="copyweek-cancel">Abbrechen</button>
+      <button class="btn btn-primary" id="copyweek-save">Kopieren</button>
+    </div>
+  </div>
+</div>
+
 <!-- ========== EDIT MODAL ========== -->
+
 <!-- ========== QUICK-ADD MODAL ========== -->
 <div class="modal-backdrop" id="quickadd-modal">
   <div class="modal quickadd-sheet" role="dialog" aria-modal="true">
@@ -1377,6 +1417,19 @@
     <div class="field" id="quickadd-distance-field" style="display:none">
       <label class="field-label" for="quickadd-distance">Distanz (km, optional)</label>
       <input type="number" id="quickadd-distance" min="0" step="0.1" inputmode="decimal" />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Wiederholen</label>
+      <div class="repeat-opts" id="quickadd-repeat">
+        <button type="button" class="repeat-chip selected" data-repeat="none">Einmalig</button>
+        <button type="button" class="repeat-chip" data-repeat="7">Wöchentlich</button>
+        <button type="button" class="repeat-chip" data-repeat="14">Alle 2 Wochen</button>
+      </div>
+    </div>
+    <div class="field" id="quickadd-until-field" style="display:none">
+      <label class="field-label" for="quickadd-until">Wiederholen bis</label>
+      <input type="date" id="quickadd-until" />
     </div>
 
     <div class="modal-actions qa-actions">
@@ -1556,7 +1609,7 @@ const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 /* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
 const STORAGE_KEY = 'kadenz_v1';
 const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
 const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
@@ -1850,6 +1903,7 @@ function renderWeek(){
     evContainer.dataset.date = iso;
     eventsForDate(day).forEach(ev => evContainer.appendChild(renderEvent(ev)));
     evContainer.addEventListener('click', (e) => {
+      if (Date.now() - lastDragEnd < 400) return;
       if (e.target === evContainer) openQuickAdd(iso);
     });
     col.appendChild(evContainer);
@@ -2137,6 +2191,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 /* ============= DROP-LOGIK (gemeinsam Maus + Touch) ============= */
 function performDrop(payload, targetISO){
+  lastDragEnd = Date.now();
   if (!payload || !targetISO) return false;
   if (payload.startsWith('event:')){
     const id = Number(payload.slice(6));
@@ -2169,6 +2224,7 @@ function performDrop(payload, targetISO){
 
 /* ============= TOUCH-DRAG (Mobile) ============= */
 /* HTML5-DnD feuert auf Touch nicht — eigenes System per Long-Press. */
+let lastDragEnd = 0;  // Zeitstempel: unterdrückt Tap-to-Add direkt nach einem Drag
 const touchDrag = {
   active: false,
   pending: false,
@@ -2319,7 +2375,8 @@ function onTouchEnd(e){
       const targetISO = target.dataset.date;
       performDrop(touchDrag.payload, targetISO);
     }
-    // Klick nach dem Drag unterdrücken
+    // Klick nach dem Drag unterdrücken (preventDefault + Zeitstempel-Sperre)
+    lastDragEnd = Date.now();
     e.preventDefault();
     tdEnd();
   } else {
@@ -2421,6 +2478,7 @@ function attachMonthDnD(){
       performDrop(payload, targetISO);
     };
     cell.addEventListener('click', (e) => {
+      if (Date.now() - lastDragEnd < 400) return;
       if (e.target.closest('.month-event')) return;
       openQuickAdd(cell.dataset.date);
     });
@@ -2662,6 +2720,7 @@ const quickaddModal = document.getElementById('quickadd-modal');
 const DURATION_PRESETS = [10, 30, 45, 60, 75, 90, 120];
 let quickaddDate = null;
 let quickaddSport = null;
+let quickaddRepeat = 0;
 
 const QA_DAY_NAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
 
@@ -2690,6 +2749,11 @@ function openQuickAdd(iso){
   document.getElementById('quickadd-distance').value = '';
   document.getElementById('quickadd-distance-field').style.display = 'none';
   renderDurationPresets(45);
+
+  const untilInput = document.getElementById('quickadd-until');
+  untilInput.value = '';
+  untilInput.min = iso;
+  setQuickAddRepeat(0);
 
   quickaddModal.classList.add('active');
 }
@@ -2741,10 +2805,24 @@ function saveQuickAdd(){
   const distInput = document.getElementById('quickadd-distance').value;
   const distance = sportHasDistance(quickaddSport) && distInput !== '' ? Number(distInput) : null;
 
-  events.push({
-    id: nextId++, date: quickaddDate, sport: quickaddSport,
+  const makeEvent = (iso) => ({
+    id: nextId++, date: iso, sport: quickaddSport,
     title, duration, distance, done: false,
   });
+
+  if (quickaddRepeat > 0){
+    const untilVal = document.getElementById('quickadd-until').value;
+    const until = untilVal ? new Date(untilVal + 'T00:00:00') : new Date(quickaddDate + 'T00:00:00');
+    let cur = new Date(quickaddDate + 'T00:00:00');
+    let guard = 0;
+    while (cur <= until && guard < 400){
+      events.push(makeEvent(toISO(cur)));
+      cur = addDays(cur, quickaddRepeat);
+      guard++;
+    }
+  } else {
+    events.push(makeEvent(quickaddDate));
+  }
   saveToLocal();
   renderView();
   computeStats();
@@ -2769,6 +2847,103 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && quickaddModal.classList.contains('active')) closeQuickAdd();
 });
 
+function setQuickAddRepeat(val){
+  quickaddRepeat = val;
+  document.querySelectorAll('#quickadd-repeat .repeat-chip').forEach(x => {
+    const chipVal = x.dataset.repeat === 'none' ? 0 : Number(x.dataset.repeat);
+    x.classList.toggle('selected', chipVal === val);
+  });
+  const untilField = document.getElementById('quickadd-until-field');
+  untilField.style.display = val > 0 ? '' : 'none';
+  if (val > 0){
+    const untilInput = document.getElementById('quickadd-until');
+    if (!untilInput.value){
+      const base = new Date(quickaddDate + 'T00:00:00');
+      untilInput.value = toISO(addDays(base, val * 4));
+    }
+  }
+}
+
+document.querySelectorAll('#quickadd-repeat .repeat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const val = chip.dataset.repeat === 'none' ? 0 : Number(chip.dataset.repeat);
+    setQuickAddRepeat(val);
+  });
+});
+
+/* ============= WOCHE KOPIEREN ============= */
+const copyweekModal = document.getElementById('copyweek-modal');
+let copyweekStart = null;
+let copyweekN = 2;
+
+function openCopyWeek(){
+  copyweekStart = startOfWeek(currentDate);
+  copyweekN = 2;
+  const end = addDays(copyweekStart, 6);
+  document.getElementById('copyweek-source').textContent =
+    `KW ${getISOWeek(copyweekStart)} · ${copyweekStart.getDate()}.–${end.getDate()}. ${MONTH_NAMES_SHORT[end.getMonth()]}`;
+  document.querySelectorAll('#copyweek-count .repeat-chip').forEach(x =>
+    x.classList.toggle('selected', Number(x.dataset.n) === copyweekN));
+  updateCopyWeekInfo();
+  copyweekModal.classList.add('active');
+}
+
+function updateCopyWeekInfo(){
+  const start = copyweekStart;
+  const end = addDays(start, 6);
+  const weekEvents = events.filter(e => e.date >= toISO(start) && e.date <= toISO(end));
+  const info = document.getElementById('copyweek-info');
+  if (weekEvents.length === 0){
+    info.textContent = 'Diese Woche enthält keine Trainings zum Kopieren.';
+    return;
+  }
+  const target = addDays(start, 7 * copyweekN);
+  const total = weekEvents.length * copyweekN;
+  info.textContent = `${weekEvents.length} Training${weekEvents.length === 1 ? '' : 's'} → ${copyweekN}× kopiert = ${total} neue Einträge (bis KW ${getISOWeek(target)}). Bestehende Einträge bleiben erhalten.`;
+}
+
+function doCopyWeek(){
+  const start = copyweekStart;
+  const startISO = toISO(start);
+  const endISO = toISO(addDays(start, 6));
+  const weekEvents = events.filter(e => e.date >= startISO && e.date <= endISO);
+  if (weekEvents.length === 0){ closeCopyWeek(); return; }
+  for (let k = 1; k <= copyweekN; k++){
+    weekEvents.forEach(e => {
+      const nd = addDays(new Date(e.date + 'T00:00:00'), 7 * k);
+      events.push({
+        id: nextId++, date: toISO(nd), sport: e.sport, title: e.title,
+        duration: e.duration, distance: e.distance, done: false,
+      });
+    });
+  }
+  saveToLocal();
+  renderView();
+  computeStats();
+  closeCopyWeek();
+}
+
+function closeCopyWeek(){ copyweekModal.classList.remove('active'); }
+
+document.querySelectorAll('#copyweek-count .repeat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    copyweekN = Number(chip.dataset.n);
+    document.querySelectorAll('#copyweek-count .repeat-chip').forEach(x =>
+      x.classList.toggle('selected', x === chip));
+    updateCopyWeekInfo();
+  });
+});
+document.getElementById('copy-week-btn').addEventListener('click', openCopyWeek);
+document.getElementById('copyweek-close').addEventListener('click', closeCopyWeek);
+document.getElementById('copyweek-cancel').addEventListener('click', closeCopyWeek);
+document.getElementById('copyweek-save').addEventListener('click', doCopyWeek);
+copyweekModal.addEventListener('click', (e) => {
+  if (e.target === copyweekModal) closeCopyWeek();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && copyweekModal.classList.contains('active')) closeCopyWeek();
+});
+
 /* ============= TABS & VIEW TOGGLE ============= */
 document.querySelectorAll('.tabs .tab').forEach(t => {
   t.addEventListener('click', () => {
@@ -2787,6 +2962,7 @@ document.querySelectorAll('.toggle-opt').forEach(b => {
     viewMode = b.dataset.mode;
     document.getElementById('week-grid').classList.toggle('hidden', viewMode !== 'week');
     document.getElementById('month-grid').classList.toggle('active', viewMode === 'month');
+    document.getElementById('copy-week-btn').style.display = viewMode === 'week' ? '' : 'none';
     renderView();
   });
 });
