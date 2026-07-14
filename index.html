@@ -1119,6 +1119,95 @@
     background: rgba(194, 65, 12, 0.08);
     border-color: transparent;
   }
+
+  /* ============ QUICK-ADD + TAGES-LISTE ============ */
+  .quickadd-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-top: 6px;
+  }
+  .qa-actions { justify-content: flex-end; gap: 10px; }
+
+  .duration-presets {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .dur-chip {
+    padding: 8px 12px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-card);
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer; color: var(--ink);
+    transition: all 0.15s;
+  }
+  .dur-chip:hover { border-color: var(--ink-dim); }
+  .dur-chip.selected {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+
+  /* "+"-Knopf im Tag-Kopf */
+  .day-head { align-items: center; }
+  .day-head-info { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .day-add {
+    width: 26px; height: 26px; flex-shrink: 0;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-card); color: var(--ink-dim);
+    border-radius: 2px; padding: 0;
+    font-size: 17px; line-height: 1;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .day-add:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .day-events { cursor: default; }
+
+  @keyframes shake {
+    10%,90%{transform:translateX(-1px);} 30%,70%{transform:translateX(2px);}
+    50%{transform:translateX(-3px);}
+  }
+  .sport-picker.shake { animation: shake 0.4s; }
+
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  /* --- Mobile: Wochenansicht als vertikale Tages-Liste --- */
+  @media (max-width: 720px) {
+    .week-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      overflow: visible;
+    }
+    .day-col {
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .day-head { padding: 11px 14px; }
+    .day-num { font-size: 19px; }
+    .day-events { min-height: 0; padding: 8px 12px 12px; }
+    .day-col:has(.day-events:empty) .day-events { display: none; }
+    .day-add { width: 30px; height: 30px; font-size: 19px; }
+
+    /* Quick-Add + Edit als Bottom-Sheet */
+    #quickadd-modal, #edit-modal { align-items: flex-end; padding: 0; }
+    #quickadd-modal .modal, #edit-modal .modal {
+      max-width: 100%;
+      border-radius: 14px 14px 0 0;
+      max-height: 90vh;
+      padding: 22px 18px calc(22px + env(safe-area-inset-bottom));
+      animation: slideUp 0.22s ease-out;
+    }
+    .dur-chip { padding: 10px 14px; font-size: 12px; }
+    .sport-picker-chip { padding: 9px 12px; font-size: 12px; }
+  }
+
 </style>
 </head>
 <body>
@@ -1256,6 +1345,46 @@
 
   
 </main>
+
+<!-- ========== EDIT MODAL ========== -->
+<!-- ========== QUICK-ADD MODAL ========== -->
+<div class="modal-backdrop" id="quickadd-modal">
+  <div class="modal quickadd-sheet" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title">Training planen</h3>
+        <div class="quickadd-date" id="quickadd-date">—</div>
+      </div>
+      <button class="modal-close" id="quickadd-close" aria-label="Schließen">✕</button>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Sportart</label>
+      <div class="sport-picker" id="quickadd-sport-picker"></div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="quickadd-title">Titel</label>
+      <input type="text" id="quickadd-title" placeholder="z.B. Lockerer Lauf" />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Dauer</label>
+      <div class="duration-presets" id="quickadd-duration-presets"></div>
+      <input type="number" id="quickadd-duration" min="0" step="5" inputmode="numeric" />
+    </div>
+
+    <div class="field" id="quickadd-distance-field" style="display:none">
+      <label class="field-label" for="quickadd-distance">Distanz (km, optional)</label>
+      <input type="number" id="quickadd-distance" min="0" step="0.1" inputmode="decimal" />
+    </div>
+
+    <div class="modal-actions qa-actions">
+      <button class="btn" id="quickadd-cancel">Abbrechen</button>
+      <button class="btn btn-primary" id="quickadd-save">Hinzufügen</button>
+    </div>
+  </div>
+</div>
 
 <!-- ========== EDIT MODAL ========== -->
 <div class="modal-backdrop" id="edit-modal">
@@ -1427,7 +1556,7 @@ const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 /* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
 const STORAGE_KEY = 'kadenz_v1';
 const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
 const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
@@ -1709,13 +1838,20 @@ function renderWeek(){
 
     const head = document.createElement('div');
     head.className = 'day-head' + (isToday ? ' today' : '');
-    head.innerHTML = `<span class="day-name">${DAY_NAMES[i]}</span><span class="day-num">${day.getDate()}</span>`;
+    head.innerHTML = `<div class="day-head-info"><span class="day-name">${DAY_NAMES[i]}</span><span class="day-num">${day.getDate()}</span></div><button class="day-add" title="Training planen" aria-label="Training planen">+</button>`;
+    head.querySelector('.day-add').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openQuickAdd(iso);
+    });
     col.appendChild(head);
 
     const evContainer = document.createElement('div');
     evContainer.className = 'day-events';
     evContainer.dataset.date = iso;
     eventsForDate(day).forEach(ev => evContainer.appendChild(renderEvent(ev)));
+    evContainer.addEventListener('click', (e) => {
+      if (e.target === evContainer) openQuickAdd(iso);
+    });
     col.appendChild(evContainer);
 
     weekGrid.appendChild(col);
@@ -2284,6 +2420,10 @@ function attachMonthDnD(){
       const payload = e.dataTransfer.getData('text/plain');
       performDrop(payload, targetISO);
     };
+    cell.addEventListener('click', (e) => {
+      if (e.target.closest('.month-event')) return;
+      openQuickAdd(cell.dataset.date);
+    });
   });
 }
 
@@ -2515,6 +2655,118 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && editModal.classList.contains('active') && e.target.tagName !== 'BUTTON') {
     saveEdit();
   }
+});
+
+/* ============= QUICK-ADD ============= */
+const quickaddModal = document.getElementById('quickadd-modal');
+const DURATION_PRESETS = [10, 30, 45, 60, 75, 90, 120];
+let quickaddDate = null;
+let quickaddSport = null;
+
+const QA_DAY_NAMES = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+
+function openQuickAdd(iso){
+  quickaddDate = iso;
+  quickaddSport = null;
+
+  const d = new Date(iso + 'T00:00:00');
+  document.getElementById('quickadd-date').textContent =
+    `${QA_DAY_NAMES[d.getDay()]}, ${d.getDate()}. ${MONTH_NAMES_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+
+  const picker = document.getElementById('quickadd-sport-picker');
+  picker.innerHTML = SPORTS.map(s => `
+    <div class="sport-picker-chip" data-sport="${s.id}">
+      <span class="sport-dot" style="background:${s.color}"></span>${escapeHtml(s.label)}
+    </div>
+  `).join('');
+  picker.querySelectorAll('.sport-picker-chip').forEach(c => {
+    c.addEventListener('click', () => selectQuickAddSport(c.dataset.sport));
+  });
+
+  const titleInput = document.getElementById('quickadd-title');
+  titleInput.value = '';
+  titleInput.dataset.auto = '1';
+  document.getElementById('quickadd-duration').value = 45;
+  document.getElementById('quickadd-distance').value = '';
+  document.getElementById('quickadd-distance-field').style.display = 'none';
+  renderDurationPresets(45);
+
+  quickaddModal.classList.add('active');
+}
+
+function selectQuickAddSport(sportId){
+  quickaddSport = sportId;
+  const picker = document.getElementById('quickadd-sport-picker');
+  picker.querySelectorAll('.sport-picker-chip').forEach(x =>
+    x.classList.toggle('selected', x.dataset.sport === sportId));
+
+  const titleInput = document.getElementById('quickadd-title');
+  if (!titleInput.value.trim() || titleInput.dataset.auto === '1'){
+    titleInput.value = PRESET_TITLES[sportId] || sportLabel(sportId);
+    titleInput.dataset.auto = '1';
+  }
+  document.getElementById('quickadd-distance-field').style.display =
+    sportHasDistance(sportId) ? '' : 'none';
+}
+
+function renderDurationPresets(selected){
+  const el = document.getElementById('quickadd-duration-presets');
+  el.innerHTML = DURATION_PRESETS.map(m =>
+    `<button type="button" class="dur-chip ${m===selected?'selected':''}" data-dur="${m}">${m}&#8242;</button>`
+  ).join('');
+  el.querySelectorAll('.dur-chip').forEach(b => {
+    b.addEventListener('click', () => {
+      document.getElementById('quickadd-duration').value = b.dataset.dur;
+      el.querySelectorAll('.dur-chip').forEach(x => x.classList.toggle('selected', x === b));
+    });
+  });
+}
+
+function closeQuickAdd(){
+  quickaddModal.classList.remove('active');
+  quickaddDate = null;
+  quickaddSport = null;
+}
+
+function saveQuickAdd(){
+  if (!quickaddSport){
+    const picker = document.getElementById('quickadd-sport-picker');
+    picker.classList.add('shake');
+    setTimeout(() => picker.classList.remove('shake'), 400);
+    return;
+  }
+  const title = document.getElementById('quickadd-title').value.trim()
+    || PRESET_TITLES[quickaddSport] || sportLabel(quickaddSport);
+  const duration = Math.max(0, Number(document.getElementById('quickadd-duration').value) || 0);
+  const distInput = document.getElementById('quickadd-distance').value;
+  const distance = sportHasDistance(quickaddSport) && distInput !== '' ? Number(distInput) : null;
+
+  events.push({
+    id: nextId++, date: quickaddDate, sport: quickaddSport,
+    title, duration, distance, done: false,
+  });
+  saveToLocal();
+  renderView();
+  computeStats();
+  closeQuickAdd();
+}
+
+document.getElementById('quickadd-title').addEventListener('input', function(){
+  this.dataset.auto = '';
+});
+document.getElementById('quickadd-duration').addEventListener('input', function(){
+  const v = Number(this.value);
+  document.querySelectorAll('#quickadd-duration-presets .dur-chip').forEach(x =>
+    x.classList.toggle('selected', Number(x.dataset.dur) === v));
+});
+document.getElementById('quickadd-close').addEventListener('click', closeQuickAdd);
+document.getElementById('quickadd-cancel').addEventListener('click', closeQuickAdd);
+document.getElementById('quickadd-save').addEventListener('click', saveQuickAdd);
+quickaddModal.addEventListener('click', (e) => {
+  if (e.target === quickaddModal) closeQuickAdd();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && quickaddModal.classList.contains('active')) closeQuickAdd();
 });
 
 /* ============= TABS & VIEW TOGGLE ============= */
