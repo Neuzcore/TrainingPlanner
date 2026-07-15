@@ -1609,7 +1609,7 @@ const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 /* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
 const STORAGE_KEY = 'kadenz_v1';
 const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.6.1';
 const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
 const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
@@ -1693,15 +1693,24 @@ function loadFromLocal(){
   }
 }
 
-function saveToLocal(){
+function saveToLocal(opts){
+  opts = opts || {};
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      version: 2, updated: Date.now(), events: events, sports: SPORTS
+      version: 2, updated: opts.updated || Date.now(), events: events, sports: SPORTS
     }));
-    scheduleCloudPush();
+    if (!opts.skipCloud) scheduleCloudPush();
   } catch (e) {
     console.error('Konnte lokal nicht speichern', e);
   }
+}
+
+function getLocalUpdated(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return 0;
+    return JSON.parse(raw).updated || 0;
+  } catch (e) { return 0; }
 }
 
 let APP_SECRET = localStorage.getItem(APP_SECRET_KEY) || null;
@@ -1799,6 +1808,31 @@ async function cloudPull(){
     lastCloudError = 'Pull: ' + (e.message || String(e));
     setCloudStatus('error');
     return null;
+  }
+}
+
+/* Automatischer Abgleich: zieht Cloud-Daten und entscheidet per Zeitstempel,
+   ob Cloud übernommen oder lokale Daten hochgeladen werden. Kein Datenverlust. */
+async function autoSync(){
+  if (!APP_SECRET) return;
+  if (cloudStatus === 'syncing') return;
+  const data = await cloudPull();
+  if (!data) return;  // Fehler steht bereits im Badge
+
+  const cloudEvents = Array.isArray(data.events) ? data.events : [];
+  const cloudUpdated = data.updated || 0;
+  const localUpdated = getLocalUpdated();
+
+  if (cloudEvents.length > 0 && cloudUpdated >= localUpdated){
+    // Cloud so aktuell wie lokal oder neuer -> übernehmen (ohne redundanten Re-Push)
+    replaceEvents(cloudEvents, data.sports);
+    saveToLocal({ updated: cloudUpdated || Date.now(), skipCloud: true });
+    renderPalette();
+    renderView();
+    computeStats();
+  } else if (localUpdated > cloudUpdated || (cloudEvents.length === 0 && events.length > 0)){
+    // Lokale Daten neuer, oder Cloud leer aber lokal vorhanden -> hochladen
+    await cloudPush();
   }
 }
 
@@ -3315,6 +3349,14 @@ initTouchDrag();
 computeStats();
 buildTrendChart();
 buildMonthChart();
+
+/* Automatischer Cloud-Abgleich beim Start (wie in den anderen Apps) */
+autoSync();
+
+/* Erneuter Abgleich, wenn die App wieder in den Vordergrund kommt (Multi-Gerät) */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && APP_SECRET) autoSync();
+});
 </script>
 </body>
 </html>
