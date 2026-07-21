@@ -1199,7 +1199,17 @@
     .day-head { padding: 11px 14px; }
     .day-num { font-size: 19px; }
     .day-events { min-height: 0; padding: 8px 12px 12px; }
-    .day-col:has(.day-events:empty) .day-events { display: none; }
+    /* Leere Tage kompakt halten, aber als Ablegefläche erhalten */
+    .day-events:empty { min-height: 40px; padding: 6px 12px; }
+    .day-events:empty::after {
+      content: 'leer — ablegen oder + tippen';
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-mute); opacity: 0.45;
+      padding: 8px 2px; pointer-events: none;
+    }
+    .day-events:empty.drop-active::after { opacity: 0.9; }
     .day-add { width: 30px; height: 30px; font-size: 19px; }
 
     /* Quick-Add + Edit als Bottom-Sheet */
@@ -1609,7 +1619,7 @@ const DAY_NAMES = ['Mo','Di','Mi','Do','Fr','Sa','So'];
 /* ============= STORAGE KEYS & CLOUD CONFIG (müssen vor STATE definiert sein) ============= */
 const STORAGE_KEY = 'kadenz_v1';
 const APP_SECRET_KEY = 'kadenz_app_secret';
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.6.2';
 const WORKER_URL = 'https://kv-store.neuzcore.workers.dev';
 const KV_LIBRARY = WORKER_URL + '/trainingplanner/data';
 
